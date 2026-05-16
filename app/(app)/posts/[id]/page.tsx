@@ -33,6 +33,7 @@ export default async function PostPage({
   const post = {
     id: dbPost.id,
     text: dbPost.text,
+    threadParts: (dbPost.threadJson as string[] | null) ?? null,
     status: dbPost.status,
     format: dbPost.format,
     xPostId: dbPost.xPostId,

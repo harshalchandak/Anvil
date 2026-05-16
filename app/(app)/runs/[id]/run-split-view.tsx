@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { ExternalLink } from "lucide-react";
 import { TraceNode } from "@/components/ui/trace-node";
 import { PostPreviewCard } from "@/components/ui/post-preview-card";
 import { PillBadge, statusTone } from "@/components/ui/pill-badge";
 import type { AgentKey } from "@/lib/mock";
+import { buildXIntentUrl } from "@/lib/x-intent";
 
 type Step = {
   id: string;
@@ -115,6 +117,7 @@ export function RunSplitView({
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45, delay: i * 0.08 }}
+                  className="space-y-2"
                 >
                   <Link href={`/posts/${p.id}`} className="block">
                     <PostPreviewCard
@@ -124,6 +127,25 @@ export function RunSplitView({
                       avatarHue={260 + i * 30}
                     />
                   </Link>
+                  <div className="flex items-center justify-end gap-2 px-1">
+                    <Link
+                      href={`/dashboard?draft=${encodeURIComponent(p.text.slice(0, 280))}`}
+                      className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-white px-3 py-1 text-xs text-neutral-700 transition hover:bg-neutral-50"
+                      title="Loads this draft into the dashboard Quick Post box."
+                    >
+                      Use this draft
+                    </Link>
+                    <a
+                      href={buildXIntentUrl({ text: p.text.slice(0, 280) })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-violet-600 px-3 py-1 text-xs font-medium text-white shadow-[0_2px_8px_rgba(110,86,248,0.2)] transition hover:bg-violet-700"
+                      title="Opens X with this post pre-filled."
+                    >
+                      <ExternalLink size={11} />
+                      Post to X
+                    </a>
+                  </div>
                 </motion.li>
               ))}
             </ol>

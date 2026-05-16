@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, RefreshCw, Send } from "lucide-react";
+import { Download, RefreshCw, ExternalLink } from "lucide-react";
 import { CarouselSlide } from "@/components/ui/carousel-slide";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { cn } from "@/lib/cn";
+import { buildXIntentUrl } from "@/lib/x-intent";
 
 type Template =
   | "minimal-dark"
@@ -155,14 +156,46 @@ export function CarouselEditor({
         </label>
 
         <div className="flex flex-col gap-2">
-          <GradientButton variant="gradient" size="md" className="w-full">
-            <Send size={14} />
-            Publish to X
+          <GradientButton
+            type="button"
+            variant="gradient"
+            size="md"
+            className="w-full"
+            onClick={() => {
+              const url = buildXIntentUrl({ text: caption });
+              window.open(url, "_blank", "noopener,noreferrer");
+            }}
+            title="Opens X with the caption pre-filled. Attach the slides in the composer."
+          >
+            <ExternalLink size={14} />
+            Post caption to X
           </GradientButton>
-          <GradientButton variant="secondary" size="sm" className="w-full">
+          <GradientButton
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              // Trigger N sequential downloads from the existing PNG proxy.
+              // Reuses the renderer output — no new rendering happens here.
+              for (const s of slides) {
+                const href = `/api/carousels/${carouselId}/slides/${s.n}.png`;
+                const a = document.createElement("a");
+                a.href = href;
+                a.download = `slide-${s.n}.png`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+              }
+            }}
+          >
             <Download size={14} />
-            Export all as PNG
+            Download all slides
           </GradientButton>
+          <p className="text-[11px] leading-relaxed text-neutral-500">
+            Download the slides, click <strong>Post caption to X</strong>, then
+            attach the images in the X composer before posting.
+          </p>
           <GradientButton variant="ghost" size="sm" className="w-full">
             <RefreshCw size={14} />
             Regenerate slides

@@ -16,6 +16,7 @@ import { getDemoXAccount } from "@/lib/demo-x-account";
 import { getDemoBrand } from "@/lib/demo-brand";
 import { AGENT_ORDER } from "@/lib/mock";
 import { StartRunButton } from "./start-run-button";
+import { QuickPostCard } from "./quick-post-card";
 import { PillBadge, statusTone } from "@/components/ui/pill-badge";
 import { AgentIcon } from "@/components/ui/agent-icon";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -170,6 +171,8 @@ export default async function DashboardPage({
           <span>Research, Pattern, Strategy, Copywriting, Voice, Carousel, Quality, Analytics.</span>
         </div>
       </section>
+
+      <QuickPostCard />
 
       {/* Quick stats */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">

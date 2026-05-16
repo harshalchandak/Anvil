@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { GradientButton } from "@/components/ui/gradient-button";
 
+/**
+ * Hackathon-mode "Start growth run":
+ *   click → POST /api/quick-generate → server picks the brand, generates one
+ *   tweet (via LLM if a key is configured, else a brand-aware template), and
+ *   returns { text }. We push the text into the dashboard via ?draft= so the
+ *   Quick Post box pre-fills. One click → composer-ready text. One more
+ *   click on "Post to X" → X opens with the text pre-filled.
+ */
 export function StartRunButton({
   brandProfileId,
   disabled,
@@ -23,24 +31,25 @@ export function StartRunButton({
       return;
     }
     start(async () => {
-      const res = await fetch("/api/growth-runs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brandProfileId, triggerType: "manual" }),
-      });
+      const res = await fetch("/api/quick-generate", { method: "POST" });
       const json = (await res.json().catch(() => null)) as
-        | { ok: true; data: { runId: string } }
+        | { ok: true; data: { text: string; source: "llm" | "template" } }
         | { ok: false; error: string }
         | null;
       if (!res.ok || !json || !json.ok) {
         setError(
           json && "error" in json
             ? json.error
-            : "Couldn't start the run. Check that Supabase is configured.",
+            : "Couldn't generate a post. Save your brand at /brand and try again.",
         );
         return;
       }
-      router.push(`/runs/${json.data.runId}`);
+      const draft = json.data.text;
+      // Push to the dashboard with the draft pre-filled. The QuickPostCard
+      // reads ?draft= and hydrates the textarea.
+      router.push(`/dashboard?draft=${encodeURIComponent(draft)}#quick-post`);
+      // Force a re-read so the page picks up the new ?draft.
+      router.refresh();
     });
   }
 
@@ -55,7 +64,7 @@ export function StartRunButton({
         title={disabled ? "Configure your brand profile first." : undefined}
       >
         {pending ? (
-          "Spinning up your team…"
+          "Drafting your post…"
         ) : (
           <>
             <Sparkles size={16} />

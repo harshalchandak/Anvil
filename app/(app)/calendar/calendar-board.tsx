@@ -3,9 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, ExternalLink } from "lucide-react";
 import { PillBadge, statusTone } from "@/components/ui/pill-badge";
 import { GradientButton } from "@/components/ui/gradient-button";
+import { buildXIntentUrl } from "@/lib/x-intent";
 
 type Post = {
   id: string;
@@ -124,18 +125,34 @@ export function CalendarBoard({
                   items.map((p) => (
                     <li
                       key={p.id}
-                      className="cursor-pointer rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-2 transition hover:-translate-y-0.5 hover:shadow-card"
-                      onClick={() => setEditing(p)}
+                      className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-2 transition hover:-translate-y-0.5 hover:shadow-card"
                     >
-                      <div className="line-clamp-3 text-xs text-neutral-800">
-                        {p.text}
-                      </div>
-                      <div className="mt-1.5 flex items-center justify-between text-[10px]">
-                        <span className="rounded-full bg-white px-2 py-0.5 text-neutral-500 ring-1 ring-[var(--border-subtle)]">
-                          {p.format}
-                        </span>
-                        <PillBadge tone={statusTone(p.status)}>{p.status}</PillBadge>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(p)}
+                        className="block w-full cursor-pointer text-left"
+                      >
+                        <div className="line-clamp-3 text-xs text-neutral-800">
+                          {p.text}
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                          <span className="rounded-full bg-white px-2 py-0.5 text-neutral-500 ring-1 ring-[var(--border-subtle)]">
+                            {p.format}
+                          </span>
+                          <PillBadge tone={statusTone(p.status)}>{p.status}</PillBadge>
+                        </div>
+                      </button>
+                      <a
+                        href={buildXIntentUrl({ text: p.text })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-2 inline-flex w-full cursor-pointer items-center justify-center gap-1 rounded-full bg-violet-600 px-2 py-1 text-[10px] font-medium text-white transition hover:bg-violet-700"
+                        title="Opens X with this post pre-filled."
+                      >
+                        <ExternalLink size={10} />
+                        Post to X
+                      </a>
                     </li>
                   ))
                 )}

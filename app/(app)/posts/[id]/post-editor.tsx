@@ -2,15 +2,24 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Check, Calendar, Images, Wand2 } from "lucide-react";
+import {
+  Send,
+  Check,
+  Calendar,
+  Images,
+  Wand2,
+  ExternalLink,
+} from "lucide-react";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { PillBadge, statusTone } from "@/components/ui/pill-badge";
 import { PostPreviewCard } from "@/components/ui/post-preview-card";
 import { ScoreBar } from "@/components/ui/score-bar";
+import { buildXIntentUrl, buildThreadIntentUrls } from "@/lib/x-intent";
 
 type Post = {
   id: string;
   text: string;
+  threadParts: string[] | null;
   status: string;
   format: "single" | "thread" | "carousel";
   xPostId: string | null;
@@ -27,9 +36,49 @@ export function PostEditor({ post }: { post: Post }) {
   const [instruction, setInstruction] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Web Intent can't confirm the post actually went out — show a small
+  // "Did you post it?" prompt after the composer window opens. Yes flips
+  // status to published via the existing /publish endpoint (which falls
+  // back to the cookie/demo path if no real X API is wired).
+  const [postIntentOpen, setPostIntentOpen] = useState(false);
 
   const chars = text.length;
   const overLimit = chars > 280 && post.format === "single";
+
+  const threadParts =
+    post.format === "thread" && post.threadParts && post.threadParts.length > 0
+      ? post.threadParts
+      : null;
+
+  function openInXComposer(textToPost: string) {
+    setError(null);
+    const url = buildXIntentUrl({ text: textToPost });
+    window.open(url, "_blank", "noopener,noreferrer");
+    setPostIntentOpen(true);
+  }
+
+  function confirmPosted() {
+    setPostIntentOpen(false);
+    // Reuse the existing /publish route. With no real X API configured it
+    // will return an error, which we swallow — the user just told us they
+    // posted manually, so we still flip the local status to published.
+    setBusy("publish");
+    start(async () => {
+      try {
+        await fetch(`/api/posts/${post.id}/publish`, { method: "POST" }).catch(
+          () => null,
+        );
+        // Best-effort: also mark as approved so any code that gates on that
+        // state sees a consistent transition.
+        await fetch(`/api/posts/${post.id}/approve`, { method: "POST" }).catch(
+          () => null,
+        );
+        router.refresh();
+      } finally {
+        setBusy(null);
+      }
+    });
+  }
 
   function callApi(action: string, body?: unknown) {
     setError(null);
@@ -120,6 +169,13 @@ export function PostEditor({ post }: { post: Post }) {
           </div>
         </div>
 
+        {threadParts ? (
+          <ThreadIntentRows
+            parts={threadParts}
+            onAnyOpened={() => setPostIntentOpen(true)}
+          />
+        ) : null}
+
         <div className="flex flex-wrap items-center gap-2">
           <GradientButton
             type="button"
@@ -145,18 +201,29 @@ export function PostEditor({ post }: { post: Post }) {
             <Calendar size={14} />
             Schedule
           </GradientButton>
-          <GradientButton
-            type="button"
-            variant="gradient"
-            size="md"
-            disabled={pending || post.status === "published"}
-            onClick={() => callApi("publish")}
-          >
-            <Send size={14} />
-            {busy === "publish" ? "Shipping…" : post.xPostId ? "Re-publish" : "Ship it"}
-          </GradientButton>
+          {threadParts ? null : (
+            <GradientButton
+              type="button"
+              variant="gradient"
+              size="md"
+              disabled={pending || post.status === "published"}
+              onClick={() => openInXComposer(text)}
+              title="Opens X with your post ready — just hit Post."
+            >
+              <Send size={14} />
+              {post.xPostId ? "Open in X again" : "Post to X"}
+            </GradientButton>
+          )}
           {error && <span className="text-xs text-red-600">{error}</span>}
         </div>
+
+        {postIntentOpen && (
+          <PostIntentConfirm
+            busy={busy === "publish"}
+            onConfirm={confirmPosted}
+            onCancel={() => setPostIntentOpen(false)}
+          />
+        )}
       </section>
 
       {/* Right: preview + scores */}
@@ -224,4 +291,101 @@ function prettyLabel(k: string): string {
     hookStrength: "Hook strength",
   };
   return map[k] ?? k;
+}
+
+/**
+ * One numbered "Open in X" row per thread part. Web Intent posts one tweet
+ * at a time; we cannot auto-chain replies — the user has to reply each next
+ * post to the previous one in the X composer.
+ */
+function ThreadIntentRows({
+  parts,
+  onAnyOpened,
+}: {
+  parts: string[];
+  onAnyOpened: () => void;
+}) {
+  const urls = buildThreadIntentUrls(parts);
+  return (
+    <div className="rounded-3xl border border-[var(--border-subtle)] bg-white p-5 shadow-[0_4px_18px_rgba(0,0,0,0.04)]">
+      <header className="mb-3">
+        <h3 className="text-sm font-medium tracking-tight">Thread parts</h3>
+        <p className="mt-1 text-xs text-neutral-500">
+          Post these in order — reply each one to the previous in the X composer.
+        </p>
+      </header>
+      <ol className="space-y-2">
+        {parts.map((part, i) => {
+          const href = urls[i]!;
+          return (
+            <li
+              key={i}
+              className="flex items-start gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2.5"
+            >
+              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[11px] font-medium tabular-nums text-violet-700">
+                {i + 1}
+              </span>
+              <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-neutral-800">
+                {part}
+              </p>
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onAnyOpened}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-violet-700"
+                title="Opens X with this part pre-filled — just hit Post."
+              >
+                <ExternalLink size={11} />
+                Open {i + 1}/{parts.length}
+              </a>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+/**
+ * The X Web Intent flow can't confirm whether the user actually posted
+ * (cross-origin, no callback). After opening the composer we show this
+ * inline confirm; "Yes" flips the post to published, "Not yet" leaves it.
+ */
+function PostIntentConfirm({
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50/60 px-4 py-3 text-sm text-violet-900">
+      <span className="font-medium">Did you post it?</span>
+      <span className="text-xs text-violet-700/80">
+        X Web Intent can&apos;t tell us automatically — confirm so we can mark it
+        published.
+      </span>
+      <div className="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={busy}
+          className="rounded-full border border-violet-200 bg-white px-3 py-1 text-xs text-violet-700 transition hover:bg-violet-50 disabled:opacity-50"
+        >
+          Not yet
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={busy}
+          className="rounded-full bg-violet-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-violet-700 disabled:opacity-50"
+        >
+          {busy ? "Marking…" : "Yes, posted"}
+        </button>
+      </div>
+    </div>
+  );
 }
