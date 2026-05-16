@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces } from "next/font/google";
-import { Toaster } from "sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -29,13 +28,6 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
       <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased">
         {children}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            className:
-              "border border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--foreground)] shadow-card",
-          }}
-        />
       </body>
     </html>
   );

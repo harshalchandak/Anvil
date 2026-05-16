@@ -20,6 +20,7 @@ import { QuickPostCard } from "./quick-post-card";
 import { PillBadge, statusTone } from "@/components/ui/pill-badge";
 import { AgentIcon } from "@/components/ui/agent-icon";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Suspense } from "react";
 
 type DashRun = {
   id: string;
@@ -172,7 +173,9 @@ export default async function DashboardPage({
         </div>
       </section>
 
-      <QuickPostCard />
+      <Suspense fallback={null}>
+        <QuickPostCard />
+      </Suspense>
 
       {/* Quick stats */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">

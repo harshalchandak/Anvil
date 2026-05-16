@@ -1,21 +1,25 @@
-import Link from "next/link";
-
-export const dynamic = "force-dynamic";
+// Static not-found — no client deps so prerender never crashes.
+export const dynamic = "force-static";
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 py-12 text-neutral-100">
-      <div className="w-full max-w-md text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Page not found</h1>
-        <p className="mt-2 text-sm text-neutral-400">
-          The page you&apos;re looking for doesn&apos;t exist.
+    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6">
+      <div className="max-w-md text-center">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-violet-600">
+          404
         </p>
-        <Link
-          href="/"
-          className="mt-6 inline-block rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-950 transition hover:bg-white"
+        <h1 className="mt-2 text-3xl font-medium tracking-tight">
+          Page not found.
+        </h1>
+        <p className="mt-2 text-sm text-neutral-600">
+          The URL you tried doesn&apos;t exist. Head back to the dashboard.
+        </p>
+        <a
+          href="/dashboard"
+          className="mt-6 inline-flex items-center gap-1 rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
         >
-          Go home
-        </Link>
+          Go to dashboard →
+        </a>
       </div>
     </main>
   );
